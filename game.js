@@ -24,30 +24,43 @@ function preload() {
 }
 
 function createAsteroid(x, y, size) {
-    var graphics = this.add.graphics({ fillStyle: { color: 0xaaaaaa } });
-    const points = [];
-    const complexity = Phaser.Math.Between(5, 10); // More or fewer vertices
-    for (let i = 0; i < complexity; i++) {
-        const angle = (i / complexity) * 2 * Math.PI;
-        const radius = size * Phaser.Math.FloatBetween(0.5, 1.5);
-        points.push({ x: radius * Math.cos(angle), y: radius * Math.sin(angle) });
+    // Create an array to hold the points of the polygon
+    var points = [];
+
+    // Create 8 points in a circular pattern
+    for (let i = 0; i < 8; i++) {
+        // Calculate the angle of the point
+        let angle = i / 8 * Math.PI * 2;
+
+        // Calculate a random distance from the center of the asteroid
+        let distance = size / 2 + Phaser.Math.Between(-size / 8, size / 8);
+
+        // Calculate the position of the point
+        let pointX = size / 2 + Math.cos(angle) * distance;
+        let pointY = size / 2 + Math.sin(angle) * distance;
+
+        // Add the point to the array
+        points.push(new Phaser.Geom.Point(pointX, pointY));
     }
-    graphics.beginPath();
-    graphics.moveTo(points[0].x, points[0].y);
-    points.forEach(point => graphics.lineTo(point.x, point.y));
-    graphics.closePath();
-    graphics.fillPath();
-    
-    // Instead of generating a new texture for each asteroid, we use a common texture key and update it
-    var textureKey = 'asteroidTexture';
-    graphics.generateTexture(textureKey, size * 2, size * 2);
+
+    // Create a polygon from the points
+    var polygon = new Phaser.Geom.Polygon(points);
+
+    // Create a graphics object and draw the polygon
+    var graphics = this.add.graphics({ x: x, y: y });
+    graphics.lineStyle(2, 0xaaaaaa);  // Set line style: width 2, color 0xaaaaaa
+    graphics.fillStyle(0xaaaaaa);  // Set fill style to the same color
+    graphics.fillPoints(polygon.points, true);
+
+    // Generate a unique texture for each asteroid
+    var textureKey = 'asteroidTexture' + Date.now();
+    graphics.generateTexture(textureKey, size, size);
     graphics.clear();
 
     const asteroid = this.physics.add.sprite(x, y, textureKey);
     asteroid.setOrigin(0.5, 0.5);
     return asteroid;
 }
-
 // Add this function to handle the destruction of the asteroid and the bullet
 function destroyAsteroid(bullet, asteroid) {
     bullet.destroy();  // Destroy the bullet
@@ -55,30 +68,43 @@ function destroyAsteroid(bullet, asteroid) {
 }
 
 function create() {
-    // Draw small stars
-    var graphics = this.add.graphics({ fillStyle: { color: 0xffffff } });
-    for (let i = 0; i < 20000; i++) { // Draw 100 stars
-        let x = Phaser.Math.Between(-400, 2400);
-        let y = Phaser.Math.Between(-300, 1800);
-        graphics.fillPoint(x, y, 2); // Draw a small dot
-    }
+// Create a RenderTexture
+var texture = this.textures.createCanvas('starfield', 6000, 6000);
 
-    //draw larger stars
-    var graphics = this.add.graphics({ lineStyle: { color: 0xffffff, width: 1 } }); for (let i = 0; i < 500; i++)
-    {
-    let x = Phaser.Math.Between(-400, 2400);
-    let y = Phaser.Math.Between(-300, 1800);
-    let size = Phaser.Math.Between(1, 6); // Random size for slight variation
+// Get a reference to the canvas context
+var ctx = texture.getContext();
 
-    // Draw a vertical line
-    graphics.lineBetween(x, y - size, x, y + size);
-    // Draw a horizontal line
-    graphics.lineBetween(x - size, y, x + size, y);
-    }
+// Draw stars on the canvas
+for (let i = 0; i < 200000; i++) {
+    let x = Phaser.Math.Between(0, 6000);  // Corrected range
+    let y = Phaser.Math.Between(0, 6000);  // Corrected range
+    let size = Phaser.Math.Between(1, 3);
+    ctx.fillStyle = 'white';
+    ctx.fillRect(x, y, size, size);
+}
+
+// Draw large stars on the canvas
+for (let i = 0; i < 500; i++) {
+    let x = Phaser.Math.Between(0, 6000);  // Corrected range
+    let y = Phaser.Math.Between(0, 6000);  // Corrected range
+    let size = Phaser.Math.Between(10, 15);
+    ctx.fillStyle = 'white';
+    
+    // Draw vertical line
+    ctx.fillRect(x, y - size / 2, 2, size);
+    // Draw horizontal line
+    ctx.fillRect(x - size / 2, y, size, 2);
+}
+
+// Refresh the texture
+texture.refresh();
+
+// Add the texture to the scene
+this.add.image(0, 0, 'starfield').setOrigin(0);
 
    
     // Create a graphics object for drawing
-    var graphics = this.add.graphics({ fillStyle: { color: 0xffffff } });
+    var graphics = this.add.graphics({ lineStyle: { color: 0xffffff, width: 2 } }); // Define line style
 
     // Draw a triangle for the ship, pointing upwards
     graphics.beginPath();
@@ -86,7 +112,7 @@ function create() {
     graphics.lineTo(400 - 15, 300 + 15); // Bottom left
     graphics.lineTo(400 + 15, 300 + 15); // Bottom right
     graphics.closePath();
-    graphics.fillPath();
+    graphics.strokePath();
 
     // Generate a texture from the graphics object
     var textureKey = 'shipTexture';
@@ -104,11 +130,12 @@ function create() {
     ship.body.setMaxVelocity(200);
 
     // Set world bounds
-    this.physics.world.setBounds(-400, -300, 2400, 1800);
+    this.physics.world.setBounds(-370, -271, 6750, 6750); // Set the world bounds to be 60000 units wide and tall
 
     // Camera setup to follow the ship
     this.cameras.main.startFollow(ship, true);
-    this.cameras.main.setBounds(0, 0, 1600, 1200);
+    this.cameras.main.setBounds(0, 0, 6000, 6000);
+    this.cameras.main.setZoom(0.5); // Zoom out to see more of the world
 
     // Setup keyboard controls
     cursors = this.input.keyboard.createCursorKeys();
@@ -129,19 +156,52 @@ function create() {
     cursors.space = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);  // Add space bar for shooting
 
     // Create several asteroids
-    this.asteroids = [];
+this.asteroids = [];
 
-    for (let i = 0; i < 50; i++) {
-        let x = Phaser.Math.Between(0, 1600);
-        let y = Phaser.Math.Between(0, 1200);
-        let size = Phaser.Math.Between(10, 40);
+// Define the number of clusters and the number of asteroids per cluster
+let numClusters = 200;
+let asteroidsPerCluster = 20;
+
+for (let i = 0; i < numClusters; i++) {
+    // Choose a random position for the center of the cluster
+    let clusterX = Phaser.Math.Between(-270, 5750);
+    let clusterY = Phaser.Math.Between(-171, 5750);
+
+    for (let j = 0; j < asteroidsPerCluster; j++) {
+        // Choose a random position near the center of the cluster for the asteroid
+        let x = Phaser.Math.Between(clusterX - 100, clusterX + 100);
+        let y = Phaser.Math.Between(clusterY - 100, clusterY + 100);
+
+        // Choose a random size for the asteroid
+        let size = Phaser.Math.Between(20, 40);
+
+        // Create the asteroid and set its velocity and rotation
         const asteroid = createAsteroid.call(this, x, y, size);
-        asteroid.setVelocity(Phaser.Math.Between(-100, 100), Phaser.Math.Between(-100, 100));
+        asteroid.setAngularVelocity(Phaser.Math.Between(-100, 100));  // Set random rotation
+
         this.asteroids.push(asteroid);
     }
+}
 
     // Add this after creating the asteroids in the create function
     this.physics.add.collider(bullets, this.asteroids, destroyAsteroid, null, this);
+
+    // In your create function:
+    this.leftButton = this.add.rectangle(50, this.cameras.main.height - 50, 100, 100, 0x000000, 0.01).setInteractive();
+    this.rightButton = this.add.rectangle(this.cameras.main.width - 50, this.cameras.main.height - 50, 100, 100, 0x000000, 0.01).setInteractive();
+    this.forwardButton = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height - 50, 100, 100, 0x000000, 0.01).setInteractive();
+    this.shootButton = this.add.rectangle(this.cameras.main.width / 2, 50, 100, 100, 0x000000, 0.01).setInteractive();
+
+
+    // Add pointerdown and pointerup events to each button:
+    this.leftButton.on('pointerdown', () => this.leftButton.isTouched = true);
+    this.leftButton.on('pointerup', () => this.leftButton.isTouched = false);
+    this.rightButton.on('pointerdown', () => this.rightButton.isTouched = true);
+    this.rightButton.on('pointerup', () => this.rightButton.isTouched = false);
+    this.forwardButton.on('pointerdown', () => this.forwardButton.isTouched = true);
+    this.forwardButton.on('pointerup', () => this.forwardButton.isTouched = false);
+    this.shootButton.on('pointerdown', () => this.shootButton.isTouched = true);
+    this.shootButton.on('pointerup', () => this.shootButton.isTouched = false);
 }
 
 function update() {
@@ -166,17 +226,31 @@ function update() {
         shootBullet();
     }
 
+    // In your update function:
+    if (this.leftButton.isTouched) {
+        ship.setAngularVelocity(-150); // Move left
+    }
+    if (this.rightButton.isTouched) {
+        ship.setAngularVelocity(150); // Move right
+    }
+    if (this.forwardButton.isTouched) {
+        this.physics.velocityFromRotation(ship.rotation - Math.PI / 2, 200, ship.body.velocity); // Move forward
+    }
+    if (this.shootButton.isTouched) {
+        shootBullet(); // Shoot
+    }
+
 
     this.asteroids.forEach(asteroid => {
         // Wrap around world bounds
         if (asteroid.x < 0) {
-            asteroid.x = 1600;
-        } else if (asteroid.x > 1600) {
+            asteroid.x = 6000;
+        } else if (asteroid.x > 6000) {
             asteroid.x = 0;
         }
         if (asteroid.y < 0) {
-            asteroid.y = 1200;
-        } else if (asteroid.y > 1200) {
+            asteroid.y = 6000;
+        } else if (asteroid.y > 6000) {
             asteroid.y = 0;
         }
     });
