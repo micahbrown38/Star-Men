@@ -187,11 +187,16 @@ for (let i = 0; i < numClusters; i++) {
     this.physics.add.collider(bullets, this.asteroids, destroyAsteroid, null, this);
 
     // In your create function:
-    this.leftButton = this.add.rectangle(50, this.cameras.main.height - 50, 100, 100, 0x000000, 0.01).setInteractive();
-    this.rightButton = this.add.rectangle(this.cameras.main.width - 50, this.cameras.main.height - 50, 100, 100, 0x000000, 0.01).setInteractive();
-    this.forwardButton = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height - 50, 100, 100, 0x000000, 0.01).setInteractive();
-    this.shootButton = this.add.rectangle(this.cameras.main.width / 2, 50, 100, 100, 0x000000, 0.01).setInteractive();
+    this.leftButton = this.add.rectangle(50, 50, 80, 80, 0x000000).setInteractive();
+    this.rightButton = this.add.rectangle(150, 50, 80, 80, 0x000000).setInteractive();
+    this.forwardButton = this.add.rectangle(250, 50, 80, 80, 0x000000).setInteractive();
+    this.shootButton = this.add.rectangle(350, 50, 80, 80, 0x000000).setInteractive();
 
+    // Set a stroke color to the buttons
+    this.leftButton.setStrokeStyle(4, 0xff0000); // Red
+    this.rightButton.setStrokeStyle(4, 0x00ff00); // Green
+    this.forwardButton.setStrokeStyle(4, 0x0000ff); // Blue
+    this.shootButton.setStrokeStyle(4, 0xffff00); // Yellow
 
     // Add pointerdown and pointerup events to each button:
     this.leftButton.on('pointerdown', () => this.leftButton.isTouched = true);
