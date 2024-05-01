@@ -19,6 +19,8 @@ var config = {
 
 var game = new Phaser.Game(config);
 var ship; // This will reference your ship
+var score = 0;
+var scoreText;
 
 function preload() {
 }
@@ -65,10 +67,51 @@ function createAsteroid(x, y, size) {
 function destroyAsteroid(bullet, asteroid) {
     bullet.destroy();  // Destroy the bullet
     asteroid.destroy();  // Destroy the asteroid
+
+    // Increment the score and update the score text
+    score += 117;
+    scoreText.setText('score: ' + score);
+}
+
+// Add this function to handle the destruction of the ship
+function destroyShip(ship, asteroid, scene) {
+    // Reset the ship's position
+    ship.x = scene.cameras.main.width / 2;
+    ship.y = scene.cameras.main.height / 2;
+
+    // Reset the ship's velocity
+    ship.body.setVelocity(0, 0);
+
+    // Reset the score and update the score text
+    score = 0;
+    scoreText.setText('score: ' + score);
+
+    // Make the ship visible and active again
+    ship.setVisible(true);
+    ship.setActive(true);
+}
+
+function createUI() {
+    // Create a graphics object for the border
+    var border = this.add.graphics({ lineStyle: { color: 0xffffff, width: 4 } });
+
+    // Define the size and position of the border
+    var borderSize = 5;
+    var borderX = this.cameras.main.scrollX + borderSize - 400;
+    var borderY = this.cameras.main.scrollY + borderSize - 300;
+    var borderWidth = (this.cameras.main.width / this.cameras.main.zoom) - borderSize * 2;
+    var borderHeight = (this.cameras.main.height / this.cameras.main.zoom) - borderSize * 2;
+
+    // Draw the border
+    border.strokeRect(borderX, borderY, borderWidth, borderHeight);
+
+    // Make sure it doesn't move with the camera
+    border.setScrollFactor(0);
 }
 
 function create() {
-// Create a RenderTexture
+    
+    // Create a RenderTexture
 var texture = this.textures.createCanvas('starfield', 6000, 6000);
 
 // Get a reference to the canvas context
@@ -103,57 +146,65 @@ texture.refresh();
 this.add.image(0, 0, 'starfield').setOrigin(0);
 
    
-    // Create a graphics object for drawing
-    var graphics = this.add.graphics({ lineStyle: { color: 0xffffff, width: 2 } }); // Define line style
+// Create a graphics object for drawing
+var graphics = this.add.graphics({ lineStyle: { color: 0xffffff, width: 2 } }); // Define line style
 
-    // Draw a triangle for the ship, pointing upwards
-    graphics.beginPath();
-    graphics.moveTo(400, 300 - 30); // Top point (nose)
-    graphics.lineTo(400 - 15, 300 + 15); // Bottom left
-    graphics.lineTo(400 + 15, 300 + 15); // Bottom right
-    graphics.closePath();
-    graphics.strokePath();
+// Draw a complex shape for the ship
+graphics.beginPath();
+graphics.moveTo(400, 300 - 30); // Top point (nose)
+graphics.lineTo(400 - 15, 300 + 15); // Bottom left
+graphics.lineTo(400 - 10, 300 + 10); // Slightly up from bottom left
+graphics.lineTo(400 - 5, 300 + 20); // Further down and to the right
+graphics.lineTo(400 + 5, 300 + 20); // Further down and to the right
+graphics.lineTo(400 + 10, 300 + 10); // Slightly up from bottom right
+graphics.lineTo(400 + 15, 300 + 15); // Bottom right
+graphics.closePath();
+graphics.strokePath();
 
-    // Generate a texture from the graphics object
-    var textureKey = 'shipTexture';
-    graphics.generateTexture(textureKey, 800, 600);
-    graphics.clear();
+// Generate a texture from the graphics object
+var textureKey = 'shipTexture';
+graphics.generateTexture(textureKey, 800, 600);
+graphics.clear();
 
-    // Add the ship sprite to the game using the generated texture
-    ship = this.physics.add.sprite(400, 300, textureKey);
-    ship.setOrigin(0.5, 0.5); // Center the origin for better rotation
-    ship.setCollideWorldBounds(true); 
+// Add the ship sprite to the game using the generated texture
+ship = this.physics.add.sprite(400, 300, textureKey);
+ship.setOrigin(0.5, 0.5); // Center the origin for better rotation
+ship.setCollideWorldBounds(true); 
 
-    // Enable physics for the ship
-    this.physics.world.enable(ship);
-    ship.body.setDrag(100); // Simulate space drag
-    ship.body.setMaxVelocity(200);
+// Enable physics for the ship
+this.physics.world.enable(ship);
+ship.body.setDrag(100); // Simulate space drag
+ship.body.setMaxVelocity(200);
 
-    // Set world bounds
-    this.physics.world.setBounds(-370, -271, 6750, 6750); // Set the world bounds to be 60000 units wide and tall
+// Adjust the size of the physics body
+var width = ship.width * 0.03;  // Adjust as needed
+var height = ship.height * 0.06;  // Adjust as needed
+ship.body.setSize(width, height);
 
-    // Camera setup to follow the ship
-    this.cameras.main.startFollow(ship, true);
-    this.cameras.main.setBounds(0, 0, 6000, 6000);
-    this.cameras.main.setZoom(0.5); // Zoom out to see more of the world
+// Set world bounds
+this.physics.world.setBounds(-370, -271, 6750, 6750); // Set the world bounds to be 60000 units wide and tall
 
-    // Setup keyboard controls
+// Camera setup to follow the ship
+this.cameras.main.startFollow(ship, true);
+this.cameras.main.setBounds(0, 0, 6000, 6000);
+this.cameras.main.setZoom(0.5); // Zoom out to see more of the world
+// Setup keyboard controls
+cursors = this.input.keyboard.createCursorKeys();
+
+// Create bullets physics group
+bullets = this.physics.add.group({
+    defaultKey: 'bullet',
+    maxSize: 30  // Limit the number of bullets active at once
+});
+
+// Generate a simple bullet texture
+var bulletGraphics = this.add.graphics({ fillStyle: { color: 0xffffff } });
+bulletGraphics.fillRect(0, 0, 2, 5);  // Small rectangle bullet
+bulletGraphics.generateTexture('bullet', 2, 5);
+bulletGraphics.clear();
+
     cursors = this.input.keyboard.createCursorKeys();
-
-    // Create bullets physics group
-    bullets = this.physics.add.group({
-        defaultKey: 'bullet',
-        maxSize: 30  // Limit the number of bullets active at once
-    });
-
-    // Generate a simple bullet texture
-    var bulletGraphics = this.add.graphics({ fillStyle: { color: 0xffffff } });
-    bulletGraphics.fillRect(0, 0, 2, 5);  // Small rectangle bullet
-    bulletGraphics.generateTexture('bullet', 2, 5);
-    bulletGraphics.clear();
-
-        cursors = this.input.keyboard.createCursorKeys();
-    cursors.space = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);  // Add space bar for shooting
+cursors.space = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);  // Add space bar for shooting
 
     // Create several asteroids
 this.asteroids = [];
@@ -172,6 +223,12 @@ for (let i = 0; i < numClusters; i++) {
         let x = Phaser.Math.Between(clusterX - 100, clusterX + 100);
         let y = Phaser.Math.Between(clusterY - 100, clusterY + 100);
 
+        // Check if the position is too close to the ship's starting position
+        let distance = Phaser.Math.Distance.Between(x, y, ship.x, ship.y);
+        if (distance < 100) {  // Adjust this value as needed
+            continue;  // Skip this iteration and move on to the next one
+        }
+
         // Choose a random size for the asteroid
         let size = Phaser.Math.Between(20, 40);
 
@@ -183,8 +240,18 @@ for (let i = 0; i < numClusters; i++) {
     }
 }
 
+    // Create the score text
+    scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#ffffff' });
+    scoreText.setScrollFactor(0);
+    scoreText.setOrigin(1, 0);
+    scoreText.setPosition(this.cameras.main.width + 200, - 200);
+
     // Add this after creating the asteroids in the create function
     this.physics.add.collider(bullets, this.asteroids, destroyAsteroid, null, this);
+
+    //Destroy the ship when it collides with an asteroid
+    this.physics.add.collider(ship, this.asteroids, (ship, asteroid) => destroyShip(ship, asteroid, this));
+
 
     // In your create function:
     this.leftButton = this.add.rectangle(50, 50, 80, 80, 0x000000).setInteractive();
@@ -207,6 +274,9 @@ for (let i = 0; i < numClusters; i++) {
     this.forwardButton.on('pointerup', () => this.forwardButton.isTouched = false);
     this.shootButton.on('pointerdown', () => this.shootButton.isTouched = true);
     this.shootButton.on('pointerup', () => this.shootButton.isTouched = false);
+
+    
+    createUI.call(this);
 }
 
 function update() {
