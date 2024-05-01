@@ -1,19 +1,21 @@
 var config = {
     type: Phaser.AUTO,
-    width: 500,
-    height: 500,
-    backgroundColor: '#000000',
+    width: 800,
+    height: 600,
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 0 }, // No gravity in space
-            debug: false
+            gravity: { y: 0 } // Set gravity to 0
         }
     },
     scene: {
         preload: preload,
         create: create,
         update: update
+    },
+    scale: {
+        mode: Phaser.Scale.RESIZE,
+        autoCenter: Phaser.Scale.CENTER_BOTH
     }
 };
 
@@ -96,11 +98,10 @@ function createUI() {
     var border = this.add.graphics({ lineStyle: { color: 0xffffff, width: 4 } });
 
     // Define the size and position of the border
-    var borderSize = 5;
-    var borderX = this.cameras.main.scrollX + borderSize - 400;
-    var borderY = this.cameras.main.scrollY + borderSize - 300;
-    var borderWidth = (this.cameras.main.width / this.cameras.main.zoom) - borderSize * 2;
-    var borderHeight = (this.cameras.main.height / this.cameras.main.zoom) - borderSize * 2;
+    var borderX = -570; // Set to the left bound of the game world
+    var borderY = -260; // Set to the top bound of the game world
+    var borderWidth = window.innerWidth * 1.9; // Set to twice the width of the window
+    var borderHeight = window.innerHeight * 1.9; // Set to twice the height of the window
 
     // Draw the border
     border.strokeRect(borderX, borderY, borderWidth, borderHeight);
