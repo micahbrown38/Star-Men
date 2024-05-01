@@ -23,6 +23,11 @@ var game = new Phaser.Game(config);
 var ship; // This will reference your ship
 var score = 0;
 var scoreText;
+var ammo = 100; // Initialize ammo count
+var ammoText; // Text object to display ammo count
+var fireRate = 200; // Time between shots in milliseconds
+var lastFired = 0; // Time when the last bullet was fired
+var bulletDistance = 500; // Maximum distance a bullet can travel
 
 function preload() {
 }
@@ -91,6 +96,9 @@ function destroyShip(ship, asteroid, scene) {
     // Make the ship visible and active again
     ship.setVisible(true);
     ship.setActive(true);
+
+    //reset ammo
+    ammo+=100;
 }
 
 function createUI() {
@@ -247,6 +255,12 @@ for (let i = 0; i < numClusters; i++) {
     scoreText.setOrigin(1, 0);
     scoreText.setPosition(this.cameras.main.width + 200, - 200);
 
+    // Create the ammo text
+    ammoText = this.add.text(16, 16, ('Ammo:' + ammo), { fontSize: '32px', fill: '#ffffff' });
+    ammoText.setScrollFactor(0);
+    ammoText.setOrigin(1, 0);
+    ammoText.setPosition(this.cameras.main.width + 100, - 100);
+
     // Add this after creating the asteroids in the create function
     this.physics.add.collider(bullets, this.asteroids, destroyAsteroid, null, this);
 
@@ -280,7 +294,7 @@ for (let i = 0; i < numClusters; i++) {
     createUI.call(this);
 }
 
-function update() {
+function update(time,delta) {
     // Handle rotation
     if (cursors.left.isDown) {
         ship.setAngularVelocity(-150);
@@ -297,10 +311,33 @@ function update() {
         ship.setAcceleration(0);
     }
 
-    // Shooting logic
-    if (Phaser.Input.Keyboard.JustDown(cursors.space)) {  // Check if the space bar was just pressed
-        shootBullet();
-    }
+// Shooting logic
+if (Phaser.Input.Keyboard.JustDown(cursors.space) && ammo > 0) {  // Check if the space bar was just pressed and there is ammo left
+    shootBullet();
+    ammo--;  // Decrease ammo count
+}
+    
+// If the shooting button is down and enough time has passed since the last shot
+if (cursors.space.isDown && time > lastFired && ammo > 0) {
+    // Shoot a bullet
+    shootBullet();
+    ammo--;  // Decrease ammo count
+
+    // Update the time when the last bullet was fired
+    lastFired = time + fireRate;
+}
+
+    // For each bullet
+    bullets.children.each(function(bullet) {
+        // Increase the distance traveled
+        bullet.distanceTraveled += Math.sqrt(Math.pow(bullet.body.velocity.x, 2) + Math.pow(bullet.body.velocity.y, 2)) * delta / 1000;
+
+        // If the bullet has traveled more than the maximum distance
+        if (bullet.distanceTraveled > bulletDistance) {
+            // Destroy the bullet
+            bullet.destroy();
+        }
+    }, this);
 
     // In your update function:
     if (this.leftButton.isTouched) {
@@ -315,6 +352,8 @@ function update() {
     if (this.shootButton.isTouched) {
         shootBullet(); // Shoot
     }
+
+
 
 
     this.asteroids.forEach(asteroid => {
@@ -336,14 +375,24 @@ function shootBullet() {
     const offset = 30;  // Offset from the ship to the bullet
     const bulletX = this.ship.x;  // Get the ship's position
     const bulletY = this.ship.y;
-    const bullet = this.bullets.get(bulletX, bulletY);  // Get a bullet from the pool and position it at the ship's position
 
-    if (bullet) {
-        bullet.setActive(true);
-        bullet.setVisible(true);
-        const adjustedRotation = this.ship.rotation - Math.PI / 2;  // Adjust the ship's rotation
-        bullet.setVelocity(speed * Math.cos(adjustedRotation), speed * Math.sin(adjustedRotation));  // Set the bullet's velocity based on the adjusted rotation
-        bullet.x += offset * Math.cos(adjustedRotation);  // Add the offset to the bullet's position after rotating it
-        bullet.y += offset * Math.sin(adjustedRotation);
+    // If there is ammo left
+    if (ammo > 0) {
+        const bullet = this.bullets.get(bulletX, bulletY);  // Get a bullet from the pool and position it at the ship's position
+
+        if (bullet) {
+            bullet.setActive(true);
+            bullet.setVisible(true);
+            const adjustedRotation = this.ship.rotation - Math.PI / 2;  // Adjust the ship's rotation
+            bullet.setVelocity(speed * Math.cos(adjustedRotation), speed * Math.sin(adjustedRotation));  // Set the bullet's velocity based on the adjusted rotation
+            bullet.x += offset * Math.cos(adjustedRotation);  // Add the offset to the bullet's position after rotating it
+            bullet.y += offset * Math.sin(adjustedRotation);
+
+            bullet.distanceTraveled = 0; // Initialize distance traveled
+
+            // Decrease ammo count
+            ammo--;
+        }
     }
+    ammoText.setText('Ammo: ' + ammo);
 }
