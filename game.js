@@ -23,11 +23,14 @@ var game = new Phaser.Game(config);
 var ship; // This will reference your ship
 var score = 0;
 var scoreText;
-var ammo = 100; // Initialize ammo count
+var ammo = 1000; // Initialize ammo count
 var ammoText; // Text object to display ammo count
 var fireRate = 200; // Time between shots in milliseconds
 var lastFired = 0; // Time when the last bullet was fired
 var bulletDistance = 500; // Maximum distance a bullet can travel
+var fuel = 10000;  // Initialize fuel count
+var fuelText;  // Text object to display fuel count
+
 
 function preload() {
 }
@@ -70,14 +73,41 @@ function createAsteroid(x, y, size) {
     asteroid.setOrigin(0.5, 0.5);
     return asteroid;
 }
+
 // Add this function to handle the destruction of the asteroid and the bullet
 function destroyAsteroid(bullet, asteroid) {
     bullet.destroy();  // Destroy the bullet
-    asteroid.destroy();  // Destroy the asteroid
 
-    // Increment the score and update the score text
-    score += 117;
-    scoreText.setText('score: ' + score);
+    // Create an iron core at the position of the destroyed asteroid
+    var ironCore = this.add.graphics({ x: asteroid.x, y: asteroid.y });
+    ironCore.fillStyle(0x00ff00, 1);  // Set fill style: color 0xaaaaaa
+    ironCore.fillCircle(0, 0, 15);  // Draw a circle: center (0, 0), radius 10
+
+    // Generate a unique texture for each iron core
+    var textureKey = 'ironCoreTexture' + Date.now();
+    ironCore.generateTexture(textureKey, 20, 20);
+    ironCore.clear();
+
+    // Create a sprite for the iron core
+    var ironCoreSprite = this.physics.add.sprite(asteroid.x, asteroid.y, textureKey);
+    ironCoreSprite.setOrigin(0.5, 0.5);
+
+    // Add a collision handler between the ship and the iron cores
+    this.physics.add.overlap(ship, ironCoreSprite, collectIronCore, null, this);
+
+    asteroid.destroy();  // Destroy the asteroid
+}
+
+// Add this function to handle the collection of iron cores
+function collectIronCore(ship, ironCoreSprite) {
+    ironCoreSprite.destroy();  // Destroy the iron core
+
+    // Increase the ammo count
+    ammo += 100;
+    // Increase the fuel count
+    fuel += 100;
+    ammoText.setText('Smmo: ' + ammo);
+    fuelText.setText('Fuel: ' + fuel);
 }
 
 // Add this function to handle the destruction of the ship
@@ -190,6 +220,10 @@ var width = ship.width * 0.03;  // Adjust as needed
 var height = ship.height * 0.06;  // Adjust as needed
 ship.body.setSize(width, height);
 
+// In your create function
+fuelText = this.add.text(16, 112, 'fuel: ' + fuel, { fontSize: '32px', fill: '#000' });  // Initialize the fuel text
+
+
 // Set world bounds
 this.physics.world.setBounds(-370, -271, 6750, 6750); // Set the world bounds to be 60000 units wide and tall
 
@@ -250,16 +284,22 @@ for (let i = 0; i < numClusters; i++) {
 }
 
     // Create the score text
-    scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#ffffff' });
+    scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#00ff00' });
     scoreText.setScrollFactor(0);
     scoreText.setOrigin(1, 0);
-    scoreText.setPosition(this.cameras.main.width + 200, - 200);
+    scoreText.setPosition(this.cameras.main.width + 200, - 150);
 
     // Create the ammo text
-    ammoText = this.add.text(16, 16, ('Ammo:' + ammo), { fontSize: '32px', fill: '#ffffff' });
+    ammoText = this.add.text(16, 16, ('Ammo:' + ammo), { fontSize: '32px', fill: '#00ff00' });
     ammoText.setScrollFactor(0);
     ammoText.setOrigin(1, 0);
-    ammoText.setPosition(this.cameras.main.width + 100, - 100);
+    ammoText.setPosition(this.cameras.main.width + 200, - 100);
+
+    // Create the ammo text
+    fuelText = this.add.text(16, 16, ('Fuel:' + fuel), { fontSize: '32px', fill: '#00ff00' });
+    fuelText.setScrollFactor(0);
+    fuelText.setOrigin(1, 0);
+    fuelText.setPosition(this.cameras.main.width + 200, - 50);
 
     // Add this after creating the asteroids in the create function
     this.physics.add.collider(bullets, this.asteroids, destroyAsteroid, null, this);
@@ -290,11 +330,15 @@ for (let i = 0; i < numClusters; i++) {
     this.shootButton.on('pointerdown', () => this.shootButton.isTouched = true);
     this.shootButton.on('pointerup', () => this.shootButton.isTouched = false);
 
+
+
+    let shipName = "The Stomper"; // Replace with your ship's name
+    shipNameText = this.add.text(0, 0, shipName, { fontSize: '32px', fill: '#00ff00' });
     
     createUI.call(this);
 }
 
-function update(time,delta) {
+function update(time, delta) {
     // Handle rotation
     if (cursors.left.isDown) {
         ship.setAngularVelocity(-150);
@@ -305,27 +349,26 @@ function update(time,delta) {
     }
 
     // Handle forward movement
-    if (cursors.up.isDown) {
+    if (cursors.up.isDown && fuel > 0) {  // Check if there is fuel left
         this.physics.velocityFromRotation(ship.rotation - Math.PI / 2, 200, ship.body.velocity);
+
+        // Decrease fuel count
+        fuel--;
+
+        // Update the fuel text
+        fuelText.setText('fuel: ' + fuel);
     } else {
         ship.setAcceleration(0);
     }
 
-// Shooting logic
-if (Phaser.Input.Keyboard.JustDown(cursors.space) && ammo > 0) {  // Check if the space bar was just pressed and there is ammo left
-    shootBullet();
-    ammo--;  // Decrease ammo count
-}
-    
-// If the shooting button is down and enough time has passed since the last shot
-if (cursors.space.isDown && time > lastFired && ammo > 0) {
-    // Shoot a bullet
-    shootBullet();
-    ammo--;  // Decrease ammo count
+    // If the shooting button is down and enough time has passed since the last shot
+    if (cursors.space.isDown && time > lastFired && ammo > 0) {
+        // Shoot a bullet
+        shootBullet();
 
-    // Update the time when the last bullet was fired
-    lastFired = time + fireRate;
-}
+        // Update the time when the last bullet was fired
+        lastFired = time + fireRate;
+    }
 
     // For each bullet
     bullets.children.each(function(bullet) {
@@ -346,15 +389,18 @@ if (cursors.space.isDown && time > lastFired && ammo > 0) {
     if (this.rightButton.isTouched) {
         ship.setAngularVelocity(150); // Move right
     }
-    if (this.forwardButton.isTouched) {
+    if (this.forwardButton.isTouched && fuel > 0) {  // Check if there is fuel left
         this.physics.velocityFromRotation(ship.rotation - Math.PI / 2, 200, ship.body.velocity); // Move forward
+
+        // Decrease fuel count
+        fuel--;
+
+        // Update the fuel text
+        fuelText.setText('fuel: ' + fuel);
     }
     if (this.shootButton.isTouched) {
         shootBullet(); // Shoot
     }
-
-
-
 
     this.asteroids.forEach(asteroid => {
         // Wrap around world bounds
@@ -369,7 +415,11 @@ if (cursors.space.isDown && time > lastFired && ammo > 0) {
             asteroid.y = 0;
         }
     });
+
+    shipNameText.x = ship.x - 100;
+    shipNameText.y = ship.y + 30;
 }
+
 function shootBullet() {
     const speed = 400;  // Speed of the bullet
     const offset = 30;  // Offset from the ship to the bullet
