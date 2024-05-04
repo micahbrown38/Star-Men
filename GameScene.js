@@ -6,6 +6,8 @@ import { destroyShip } from './destroyShip.js';
 import { shootBullet } from './shootBullet.js';
 import { destroyAsteroid } from './destroyAsteroid.js';
 import { collectIronCore } from './collectIronCore.js';
+import BackgroundStars from './backgroundStars.js';
+import Attributes from './Attributes.js';
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -24,6 +26,7 @@ export default class GameScene extends Phaser.Scene {
             this.cursors = null;
             this.bullets = null;
             this.shipNameText = null;
+            this.backgroundStars = new BackgroundStars(this);
     }
 
     preload() {
@@ -36,19 +39,18 @@ export default class GameScene extends Phaser.Scene {
         let selectedShip = this.sys.settings.data.selectedShip || 'ship4'; // Use 'ship4' as a default
         let shipTexture = createShip(this, selectedShip);
         this.ship = this.physics.add.image(100, 100, shipTexture);
+        this.ship.body.setDrag(100); // Add drag to make the ship slow down over time
+        this.ship.attributes = new Attributes(); // Add attributes to the ship
+
+        // Scale the ship to half its original size
+        this.ship.setScale(0.5);
 
         // Initialize this.shipNameText
         this.shipNameText = this.add.text(10, 10, shipName, { fontSize: '32px', fill: '#0f0' });
         this.shipNameText.setScrollFactor(1); // Make the text fixed on the screen
 
-        // Display the ship name below the ship
-        //let nameText = this.add.text(this.ship.x, this.ship.y + 40, shipName, { fill: '#0f0' });
-        //nameText.setOrigin(0.5, 0); // Center the text horizontally and align it to the top    
-
         // Adjust the size of the physics body
         this.ship.body.setSize(40, 40);
-
-        //createUI(this);
 
         // In your create function
         this.fuelText = this.add.text(16, 112, 'fuel: ' + this.fuel, { fontSize: '32px', fill: '#000' });  // Initialize the fuel text
@@ -59,7 +61,7 @@ export default class GameScene extends Phaser.Scene {
         // Camera setup to follow the ship
         this.cameras.main.startFollow(this.ship, true);
         this.cameras.main.setBounds(0, 0, 6000, 6000);
-        this.cameras.main.setZoom(0.5); // Zoom out to see more of the world
+        this.cameras.main.setZoom(1); // Zoom out to see more of the world
         
         // Setup keyboard controls
         this.cursors = this.input.keyboard.createCursorKeys();
@@ -84,13 +86,13 @@ export default class GameScene extends Phaser.Scene {
         this.ammoText = this.add.text(16, 16, ('Ammo:' + this.ammo), { fontSize: '32px', fill: '#00ff00' });
         this.ammoText.setScrollFactor(0);
         this.ammoText.setOrigin(1, 0);
-        this.ammoText.setPosition(this.cameras.main.width + 200, - 100);
+        this.ammoText.setPosition(this.cameras.main.width - 50, + 20);
 
         // Create the fuel text
         this.fuelText = this.add.text(16, 16, ('Fuel:' + this.fuel), { fontSize: '32px', fill: '#00ff00' });
         this.fuelText.setScrollFactor(0);
         this.fuelText.setOrigin(1, 0);
-        this.fuelText.setPosition(this.cameras.main.width + 200, - 50);
+        this.fuelText.setPosition(this.cameras.main.width - 50, + 45);
 
         // Add this after creating the asteroids in the create function
         this.physics.add.collider(this.bullets, this.asteroids, function(bullet, asteroid) {
@@ -100,7 +102,29 @@ export default class GameScene extends Phaser.Scene {
         //Destroy the ship when it collides with an asteroid
         this.physics.add.collider(this.ship, this.asteroids, (ship, asteroid) => destroyShip(ship, asteroid, this, this.score, this.scoreText, this.ammo));
 
-        createStarfield(this);  // Create the starfield background
+        //createStarfield(this);  // Create the starfield background
+        this.backgroundStars.create();
+        
+
+        
+}
+
+
+showLevelUp(text, x, y) {
+    let levelUpText = this.add.text(x, y, text, { fontSize: '32px', fill: '#00ff00' });
+    levelUpText.setScrollFactor(0);
+    levelUpText.setOrigin(0.5, 0.5);
+
+    this.tweens.add({
+        targets: levelUpText,
+        y: y - 100,
+        alpha: 0,
+        duration: 2000,
+        ease: 'Power2',
+        onComplete: function () {
+            levelUpText.destroy();
+        }
+    });
 }
 
     update(time, delta) {
@@ -161,6 +185,8 @@ export default class GameScene extends Phaser.Scene {
             }
         });
 
+        let shipSpeed = 0;
+        this.backgroundStars.update(shipSpeed);
         if (this.shipNameText) {
             // Update the position of the text to the position of the ship
             this.shipNameText.x = this.ship.x - 60;

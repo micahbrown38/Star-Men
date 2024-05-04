@@ -1,3 +1,5 @@
+import Attributes from './Attributes.js';
+
 function destroyAsteroid(bullet, asteroid, ship, collectIronCore, ammo, fuel, ammoText, fuelText) {
     bullet.destroy();  // Destroy the bullet
 
@@ -20,6 +22,12 @@ function destroyAsteroid(bullet, asteroid, ship, collectIronCore, ammo, fuel, am
         collectIronCore(ship, ironCoreSprite, ammo, fuel, ammoText, fuelText);
     }, null, this);
     
+    // When an asteroid is destroyed...
+    this.ship.attributes = new Attributes(this);
+    this.ship.attributes.addXP('shooting', 100);  // Add XP to the shooting attribute
+    //console.log(this.ship.attributes.getXP('shooting'));  // Log the current XP for the shooting attribute
+    //console.log(this.ship.attributes.getLevel('shooting'));
+
     asteroid.destroy();  // Destroy the asteroid
 }
 

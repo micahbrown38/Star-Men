@@ -1,8 +1,10 @@
 import { createShip } from './createShip.js';
+import BackgroundStars from './backgroundStars.js';
 
 export default class ShipSelectionScene extends Phaser.Scene {
     constructor() {
         super({ key: 'ShipSelectionScene' });
+            this.backgroundStars = new BackgroundStars(this);
     }
 
     preload() {
@@ -14,6 +16,8 @@ export default class ShipSelectionScene extends Phaser.Scene {
     }
 
     create() {
+        this.backgroundStars.create(); // Create the background stars
+        this.cameras.main.setZoom(1);
         // Create an array to store the ships
         let ships = [];
 

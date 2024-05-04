@@ -1,52 +1,33 @@
 export function createStarfield(scene) {
-    // Set the size of the starfield
-    const width = scene.game.canvas.width;
-    const height = scene.game.canvas.height;
+    // Create a group for the stars
+    var stars = scene.physics.add.group();
 
-    // Remove the existing texture if it exists
-    if (scene.textures.exists('starfield')) {
-        scene.textures.remove('starfield');
-    }
-
-    // Create a RenderTexture
-    var texture = scene.textures.createCanvas('starfield', width, height);
-
-    // Get a reference to the canvas context
-    var ctx = texture.getContext();
-
-    // Draw stars on the canvas
+    // Create initial stars
     for (let i = 0; i < 1000; i++) {
-        let x = Phaser.Math.Between(0, width);
-        let y = Phaser.Math.Between(0, height);
-        let size = Phaser.Math.Between(1, 3);
-        ctx.fillStyle = 'white';
-        ctx.fillRect(x, y, size, size);
+        let x = Phaser.Math.Between(-1000, scene.cameras.main.width+1000);
+        let y = Phaser.Math.Between(-1000, scene.cameras.main.height+1000);
+        let star = scene.physics.add.sprite(x, y, 'star');
+        stars.add(star);
     }
 
-    // Draw large stars on the canvas
-    for (let i = 0; i < 50; i++) {
-        let x = Phaser.Math.Between(0, width);
-        let y = Phaser.Math.Between(0, height);
-        let size = Phaser.Math.Between(10, 15);
-        ctx.fillStyle = 'white';
-        // Draw vertical line
-        ctx.fillRect(x, y - size / 2, 2, size);
-        // Draw horizontal line
-        ctx.fillRect(x - size / 2, y, size, 2);
-    }
+    // Update the starfield
+    scene.events.on('update', function() {
+        // Update the size of the starfield
+        const width = scene.cameras.main.width;
+        const height = scene.cameras.main.height;
 
-    // Refresh the texture
-    texture.refresh();
+        // Remove stars that have moved off the screen
+        stars.getChildren().forEach(function(star) {
+            if (star.x < 0) {
+                star.destroy();
+            }
+        });
 
-    // Add the texture to the scene as a TileSprite
-    var starfield = scene.add.tileSprite(0, 0, scene.game.canvas.width, scene.game.canvas.height, 'starfield').setOrigin(0, 0);
-    starfield.setSize(scene.game.canvas.width, scene.game.canvas.height);
-    scene.game.canvas.style.border = "3px solid green";
-
-    // Resize the TileSprite whenever the game canvas is resized
-    scene.scale.on('resize', function(gameSize) {
-        starfield.setSize(gameSize.width, gameSize.height);
+        // Add new stars at the right edge of the screen
+        if (Phaser.Math.Between(0, 1) < 0.5) {
+            let y = Phaser.Math.Between(0, height);
+            let star = scene.physics.add.sprite(width, y, 'star');
+            stars.add(star);
+        }
     });
-
-    scene.scale.refresh();
 }

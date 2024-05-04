@@ -1,18 +1,21 @@
 import { createStarfield } from './starfield.js';
 import ShipSelectionScene from './ShipSelectionScene.js';
+import BackgroundStars from './backgroundStars.js';
 
 class StartScene extends Phaser.Scene {
     constructor() {
         super('StartScene');
+            this.backgroundStars = new BackgroundStars(this);
     }
 
     create() {
         this.game.data = new Phaser.Data.DataManager(this); // Create a new DataManager
         //this.cameras.main.setBackgroundColor('#008000'); // Set background color to green
 
-        createStarfield(this);  // Create the starfield background
+        this.backgroundStars.create(); // Create the background stars
+        //createStarfield(this);  // Create the starfield background
 
-        this.cameras.main.zoom = 0.5; // Zoom out to see more of the world
+        this.cameras.main.setZoom(1); // Zoom out to see more of the world
             // Create an HTML input element
     this.inputElement = document.createElement('input');
     this.inputElement.type = 'text';
